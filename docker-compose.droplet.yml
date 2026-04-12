@@ -1,0 +1,154 @@
+#
+# Minimal Druid + Turnilo stack for 4GB / 2 vCPU DigitalOcean droplet.
+#
+# Changes from docker-compose.yml:
+#   - coordinator → coordinator-overlord (combined role, one fewer JVM)
+#   - middleManager → indexer (in-process tasks, lighter RAM usage)
+#   - router removed (Turnilo replaces the web console)
+#   - mem_limit on every service to prevent OOM cascades
+#   - Uses environment.droplet with tuned JVM settings
+#
+# Usage:
+#   docker compose -f docker-compose.droplet.yml up -d --build
+#   docker compose -f docker-compose.droplet.yml logs -f
+#   docker compose -f docker-compose.droplet.yml down
+#
+# To temporarily start the router for debugging:
+#   docker compose -f docker-compose.droplet.yml up -d router
+#
+version: "2.2"
+
+volumes:
+  metadata_data: {}
+  middle_var: {}
+  historical_var: {}
+  broker_var: {}
+  coordinator_var: {}
+  router_var: {}
+  druid_shared: {}
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:17.6
+    ports:
+      - "5432:5432"
+    volumes:
+      - metadata_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=FoolishPassword
+      - POSTGRES_USER=druid
+      - POSTGRES_DB=druid
+    mem_limit: 256m
+
+  zookeeper:
+    container_name: zookeeper
+    image: zookeeper:3.5.10
+    ports:
+      - "2181:2181"
+    environment:
+      - ZOO_MY_ID=1
+    mem_limit: 256m
+
+  coordinator:
+    image: apache/druid:36.0.0
+    container_name: coordinator
+    volumes:
+      - druid_shared:/opt/shared
+      - coordinator_var:/opt/druid/var
+    depends_on:
+      - zookeeper
+      - postgres
+    ports:
+      - "8081:8081"
+    command:
+      - coordinator-overlord
+    env_file:
+      - environment.droplet
+    mem_limit: 700m
+
+  broker:
+    image: apache/druid:36.0.0
+    container_name: broker
+    volumes:
+      - broker_var:/opt/druid/var
+    depends_on:
+      - zookeeper
+      - postgres
+      - coordinator
+    ports:
+      - "8082:8082"
+    command:
+      - broker
+    env_file:
+      - environment.droplet
+    mem_limit: 700m
+
+  historical:
+    image: apache/druid:36.0.0
+    container_name: historical
+    volumes:
+      - druid_shared:/opt/shared
+      - historical_var:/opt/druid/var
+    depends_on:
+      - zookeeper
+      - postgres
+      - coordinator
+    ports:
+      - "8083:8083"
+    command:
+      - historical
+    env_file:
+      - environment.droplet
+    mem_limit: 900m
+
+  indexer:
+    image: apache/druid:36.0.0
+    container_name: indexer
+    volumes:
+      - druid_shared:/opt/shared
+      - middle_var:/opt/druid/var
+      - /home/lcalleja/db_relay/:/opt/druid/db_relay:ro  # BIND MOUNT — update path for droplet
+    depends_on:
+      - zookeeper
+      - postgres
+      - coordinator
+    ports:
+      - "8091:8091"
+      - "8100-8105:8100-8105"
+    command:
+      - indexer
+    env_file:
+      - environment.droplet
+    mem_limit: 512m
+
+  # Router is excluded by default to prioritize Turnilo performance.
+  # Uncomment and run: docker compose -f docker-compose.droplet.yml up -d router
+  #
+  # router:
+  #   image: apache/druid:36.0.0
+  #   container_name: router
+  #   volumes:
+  #     - router_var:/opt/druid/var
+  #   depends_on:
+  #     - zookeeper
+  #     - postgres
+  #     - coordinator
+  #   ports:
+  #     - "8888:8888"
+  #   command:
+  #     - router
+  #   env_file:
+  #     - environment.droplet
+  #   mem_limit: 192m
+
+  turnilo:
+    build: ./docker-turnilo
+    container_name: turnilo
+    ports:
+      - "9091:9090"
+    environment:
+      - DRUID_BROKER_URL=http://broker:8082
+    depends_on:
+      - broker
+    mem_limit: 256m
