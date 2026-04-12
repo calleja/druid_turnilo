@@ -1,0 +1,72 @@
+web console location: http://localhost:8888/unified-console.html
+
+Mysql batch ingest into Apache Druid
+
+membership_ard steps:
+1. Extract data (from query) from mysql db: run query to export table to csv (do this from a terminal window in the docker container)
+(sample script for the "active membership" dash) mysql -u root -p membership_ard -e "SELECT calendar_date, active_cnts, temporary_inactivte, revoked, general_leave, winbacks FROM membership_viz" --batch --raw | tr '\t' ',' > membership_viz.csv
+*** can the mysql instance access other directories? It's those that I will bind-mount to the Druid container
+2. add a header if one is not present (inspect with command to see first row: cat membership_viz.csv | head -n 1)
+sed -i '' '1s/^/calendar_date,active_cnts,temporary_inactivte,revoked,general_leave,winbacks\n/' membership_viz.csv
+3. copy the csv into a druid container via my local (essentially must route data - via a hard copy - through my physical local filesystem - can't do it in Docker):
+3.1 MySQL container → your Mac (current directory)
+> docker cp mysql-cont:/membership_viz.csv ./membership_viz.csv
+3.2 your Mac → middlemanager's shared volume
+> docker cp ./membership_viz.csv middlemanager:/opt/shared/membership_viz.csv
+4. run query I've stored in /druid_tut/load_membership_viz.sql
+
+TODO
+**ideally will mount a storage volume between the mysql container and the 'broker' to bypass saving the csv on my local**
+
+concepts: multi-stage query
+
+mcp server: https://github.com/AnilPuram/apache-druid-mcp-server
+
+article on loading from mysql data: https://medium.com/@kyle.hoondert/loading-mysql-tables-into-apache-druid-28d6638f66a8
+
+DRUID_SINGLE_NODE_CONF=nano-quickstart
+
+(make sure Docker is running first) open -a Docker
+docker compose up -d
+docker compose down
+
+explore the Druid containers with:
+docker exec -ti <id> sh
+
+web console location -> http://localhost:8888/
+
+bin/start-druid
+
+DRUID ARCHITECTURE:
+https://druid.apache.org/docs/latest/design/architecture
+https://teepika-r-m.medium.com/apache-druid-architecture-and-core-concepts-in-layman-terms-57d7eb2625fd
+
+Turnilo dashboards (requires node.js):
+https://github.com/allegro/turnilo
+
+Install:
+npm install -g turnilo
+turnilo run-examples
+example datasets: http://localhost:9090/
+#connect to existing Druid broker
+turnilo connect-druid http[s]://druid-broker-hostname[:port]
+
+Allegro Turnilo official github repo
+https://github.com/allegro/turnilo.git
+
+
+#installing dependencies
+npm install
+npm run build
+npm run start:examples
+npm run start:examples # Connect to the existing Druid broker.
+npm run start -- run-config path/to/config.yml # Connect to the existing Druid broker using your config file.
+
+#CONNECT TURNILO TO DRUID CLUSTER
+turnilo connect-druid broker_host:broker_port
+
+#Turnilo can help me write a YAML: https://allegro.github.io/turnilo/configuration-cluster.html
+turnilo introspect-druid broker_host:broker_port --verbose > config.yaml
+
+DATA INGESTION PATTERNS INTO DRUID
+https://www.decodable.co/blog/top-6-patterns-for-ingesting-data-into-druid
