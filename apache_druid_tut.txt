@@ -3,8 +3,9 @@ web console location: http://localhost:8888/unified-console.html
 Mysql batch ingest into Apache Druid
 
 membership_ard steps:
-1. Extract data (from query) from mysql db: run query to export table to csv (do this from a terminal window in the docker container)
-(sample script for the "active membership" dash) mysql -u root -p membership_ard -e "SELECT calendar_date, active_cnts, temporary_inactivte, revoked, general_leave, winbacks FROM membership_viz" --batch --raw | tr '\t' ',' > membership_viz.csv
+1. Extract data (by query) from mysql db: run query to export table to csv (do this from a terminal window in the docker container)
+(sample script for the "active membership" dash) 
+> mysql -u root -p membership_ard -e "SELECT calendar_date, active_cnts, temporary_inactivte, revoked, general_leave, winbacks FROM membership_viz" --batch --raw | tr '\t' ',' > membership_viz.csv
 *** can the mysql instance access other directories? It's those that I will bind-mount to the Druid container
 2. add a header if one is not present (inspect with command to see first row: cat membership_viz.csv | head -n 1)
 sed -i '' '1s/^/calendar_date,active_cnts,temporary_inactivte,revoked,general_leave,winbacks\n/' membership_viz.csv
