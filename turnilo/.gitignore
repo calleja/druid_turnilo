@@ -1,0 +1,8 @@
+/.idea/*
+/node_modules/*
+/build/*
+/docs/_site/*
+*.iml
+*.tgz
+config.yml
+config.yaml

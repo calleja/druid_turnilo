@@ -1,0 +1,48 @@
+name: Release Final
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        description: 'Defines which part of a SemVer should be increased during the release process, e.g "major", "minor" or "patch"'
+        default: "minor"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # changelog is generated from git log
+          fetch-depth: 0
+          # release must bypass branch protection rules, built-in GITHUB_TOKEN doesn't work
+          token: ${{ secrets.RELEASE_GH_TOKEN }}
+
+      - name: Check if branch is not master
+        if: github.ref != 'refs/heads/master'
+        run: exit 1
+
+      - uses: ./.github/actions/setup
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
+      - run: npm run e2e
+
+      - name: Configure GIT
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+      - name: Install release-it
+        run: npm install -g release-it@14.6.1
+
+      - name: Final Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_USERCONFIG: .npmrc-publish
+        run: |
+          release-it ${{ github.event.inputs.increment }} --ci

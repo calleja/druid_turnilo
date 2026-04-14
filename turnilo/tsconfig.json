@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "sourceMap": true,
+    "declaration": false,
+    "noImplicitAny": true,
+    "noEmitOnError": true,
+    "removeComments": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "strictNullChecks": false,
+    "skipLibCheck": true,
+    "target": "esnext",
+    "module": "esnext",
+    "rootDir": "src",
+    "outDir": "build",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "jsx": "react",
+    "lib": ["dom", "es6", "es5"],
+    "types": ["node", "express", "mocha", "cypress", "webpack-env"]
+  }
+}
