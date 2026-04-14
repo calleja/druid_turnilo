@@ -1,11 +1,15 @@
 web console location: http://localhost:8888/unified-console.html
-
+IP address of radish: http://67.207.80.236:9091
 Mysql batch ingest into Apache Druid
+
+Droplet firewall configuration: doctl compute firewall create --name "example-firewall" --inbound-rules "protocol:tcp,ports:22,droplet_id:386734086" --outbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0" --droplet-ids "386734086,391669331" --tag-names "frontend,backend,k8s:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+
+sudo doctl compute firewall create --name "turnilo-firewall" --inbound-rules "protocol:tcp,ports:9091,address:0.0.0.0/0,::/0" --droplet-ids 289535604
 
 membership_ard steps:
 1. Extract data (by query) from mysql db: run query to export table to csv (do this from a terminal window in the docker container)
 (sample script for the "active membership" dash) 
-> mysql -u root -p membership_ard -e "SELECT calendar_date, active_cnts, temporary_inactivte, revoked, general_leave, winbacks FROM membership_viz" --batch --raw | tr '\t' ',' > membership_viz.csv
+> mysql -u lcalleja2 -p membership_ard -e "SELECT calendar_date, active_cnts, temporary_inactivte, revoked, general_leave, winbacks FROM membership_viz" --batch --raw | tr '\t' ',' > /home/lcalleja/db_relay/membership_viz.csv
 *** can the mysql instance access other directories? It's those that I will bind-mount to the Druid container
 2. add a header if one is not present (inspect with command to see first row: cat membership_viz.csv | head -n 1)
 sed -i '' '1s/^/calendar_date,active_cnts,temporary_inactivte,revoked,general_leave,winbacks\n/' membership_viz.csv
@@ -14,7 +18,28 @@ sed -i '' '1s/^/calendar_date,active_cnts,temporary_inactivte,revoked,general_le
 > docker cp mysql-cont:/membership_viz.csv ./membership_viz.csv
 3.2 your Mac → middlemanager's shared volume
 > docker cp ./membership_viz.csv middlemanager:/opt/shared/membership_viz.csv
-4. run query I've stored in /druid_tut/load_membership_viz.sql
+4. run query I've stored in /druid_tut/load_membership_viz.sql -> this hit the "broker" service of Druid
+
+SPEC-INGESTION
+"_comment": "If you skip the wizard and want to POST a spec directly to (spec located at /membership_viz_ingestion_spec.json) 
+
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -d @membership_viz_ingestion_spec.json \
+  http://localhost:8081/druid/indexer/v1/task
+
+  "documentation": "https://druid.apache.org/docs/latest/ingestion/ingestion-spec/",
+
+Submit the spec to the coordinator-overlord (port 8081), not the broker. In docker-compose.droplet.yml, the coordinator runs coordinator-overlord, which includes the Overlord role — the Overlord is the service that accepts and schedules ingestion tasks. The broker (8082) handles queries only.
+coordinator-overlord endpoint: POST http://localhost:8081/druid/indexer/v1/task
+
+To confirm job:
+# List running tasks
+curl http://localhost:8081/druid/indexer/v1/runningTasks
+
+# List completed tasks
+curl http://localhost:8081/druid/indexer/v1/completedTasks
+
 
 TODO
 **ideally will mount a storage volume between the mysql container and the 'broker' to bypass saving the csv on my local**
