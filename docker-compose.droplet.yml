@@ -62,7 +62,10 @@ services:
     ports:
       - "8081:8081"
     command:
-      - coordinator-overlord
+      - coordinator          # ← change from coordinator-overlord
+    environment:
+      - druid_coordinator_asOverlord_enabled=true
+      - druid_coordinator_asOverlord_overlordService=druid/overlord
     env_file:
       - environment.droplet
     mem_limit: 700m

@@ -2,6 +2,13 @@ web console location: http://localhost:8888/unified-console.html
 IP address of radish: http://67.207.80.236:9091
 Mysql batch ingest into Apache Druid
 
+Rebuild Docker containers
+(make sure I'm in the directory that contains the correct .yml file)
+> sudo docker compose -f docker-compose.droplet.yml up -d --force-recreate coordinator
+# Wait ~30 seconds for startup, then check
+> docker ps | grep coordinator
+> curl http://localhost:8081/status/health
+
 Droplet firewall configuration: doctl compute firewall create --name "example-firewall" --inbound-rules "protocol:tcp,ports:22,droplet_id:386734086" --outbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0" --droplet-ids "386734086,391669331" --tag-names "frontend,backend,k8s:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 
 sudo doctl compute firewall create --name "turnilo-firewall" --inbound-rules "protocol:tcp,ports:9091,address:0.0.0.0/0,::/0" --droplet-ids 289535604
@@ -23,10 +30,7 @@ sed -i '' '1s/^/calendar_date,active_cnts,temporary_inactivte,revoked,general_le
 SPEC-INGESTION
 "_comment": "If you skip the wizard and want to POST a spec directly to (spec located at /membership_viz_ingestion_spec.json) 
 
-curl -X POST \
-  -H 'Content-Type: application/json' \
-  -d @membership_viz_ingestion_spec.json \
-  http://localhost:8081/druid/indexer/v1/task
+curl -X POST -H 'Content-Type: application/json' -d @membership_viz_ingestion_spec.json http://localhost:8081/druid/indexer/v1/task
 
   "documentation": "https://druid.apache.org/docs/latest/ingestion/ingestion-spec/",
 
