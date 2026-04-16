@@ -32,6 +32,20 @@ SPEC-INGESTION
 
 curl -X POST -H 'Content-Type: application/json' -d @membership_viz_ingestion_spec.json http://localhost:8081/druid/indexer/v1/task
 
+troubleshooting turnilo pipeline:
+curl -s http://localhost:8081/druid/indexer/v1/completedTasks | python3 -m json.tool
+
+curl -s http://localhost:8081/druid/indexer/v1/runningTasks
+
+curl -s http://localhost:8082/druid/v2/datasources
+
+sudo docker logs turnilo 2>%1 | tail -20
+
+sudo docker logs indexer 2>&1 | tail -50
+
+sudo docker ps -a --format '{{.Status}}' --filter name=indexer
+
+
   "documentation": "https://druid.apache.org/docs/latest/ingestion/ingestion-spec/",
 
 Submit the spec to the coordinator-overlord (port 8081), not the broker. In docker-compose.droplet.yml, the coordinator runs coordinator-overlord, which includes the Overlord role — the Overlord is the service that accepts and schedules ingestion tasks. The broker (8082) handles queries only.
