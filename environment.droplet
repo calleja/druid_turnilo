@@ -26,6 +26,7 @@ druid_metadata_storage_connector_password=FoolishPassword
 # Indexer task JVM — reduced from 1g heap / 3g direct to 256m each
 druid_indexer_runner_javaOptsArray=["-server", "-Xmx256m", "-Xms256m", "-XX:MaxDirectMemorySize=256m", "-Duser.timezone=UTC", "-Dfile.encoding=UTF-8", "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"]
 druid_indexer_fork_property_druid_processing_buffer_sizeBytes=128MiB
+druid_indexer_runner_type=remote
 
 druid_storage_type=local
 druid_storage_storageDirectory=/opt/shared/segments
