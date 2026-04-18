@@ -2,6 +2,9 @@ web console location: http://localhost:8888/unified-console.html
 IP address of radish: http://67.207.80.236:9091
 Mysql batch ingest into Apache Druid
 
+restart turnilo to actualize data:
+> docker restart turnilo
+
 Rebuild Docker containers
 (make sure I'm in the directory that contains the correct .yml file)
 > sudo docker compose -f docker-compose.droplet.yml up -d --force-recreate coordinator
@@ -39,12 +42,17 @@ curl -s http://localhost:8081/druid/indexer/v1/runningTasks
 
 curl -s http://localhost:8082/druid/v2/datasources
 
-sudo docker logs turnilo 2>%1 | tail -20
+sudo docker logs turnilo 2>&1 | tail -20
 
 sudo docker logs indexer 2>&1 | tail -50
 
 sudo docker ps -a --format '{{.Status}}' --filter name=indexer
 
+sudo docker exec indexer ls -R /opt/shared/segments
+
+sudo docker ps | grep historical and docker logs historical 2>&1 | tail -20
+
+sudo docker exec indexer cat /opt/shared/indexing-logs/index_parallel_membership_viz_lpeknbpn_2026-04-16T20:16:10.884Z.log | tail -30
 
   "documentation": "https://druid.apache.org/docs/latest/ingestion/ingestion-spec/",
 

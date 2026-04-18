@@ -10,6 +10,10 @@ docker start
 dashboard viewable here:
 http://localhost:9090
 
+# make custom adjustments to dashboards
+css file location: /usr/local/lib/node_modules/turnilo/build/public/main.css
+the `index.html` file will need to contain the path to the css file:
+docker cp turnilo:/path/to/turnilo/index.html ./index.html
 # graphic rendering issue
 Reduce measures to ≤3 — as you discovered, this is the immediate workaround.
 
